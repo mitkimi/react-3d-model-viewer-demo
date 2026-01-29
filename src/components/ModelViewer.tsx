@@ -153,14 +153,18 @@ const ModelInner: FC<ModelInnerProps> = ({
     const applyLayout = (): boolean => {
       g.updateWorldMatrix(true, true);
       const box = new THREE.Box3().setFromObject(g);
-      const sphere = box.getBoundingSphere(new THREE.Sphere());
-
-      const validRadius = Number.isFinite(sphere.radius) && sphere.radius > 1e-6;
-      const rawS = validRadius ? 1 / (sphere.radius * 2) : 1;
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z, 1e-6);
+      const validBounds = Number.isFinite(maxDim) && maxDim > 1e-6;
+      // 用包围盒最长边归一化，细长模型（如 sneaker）不会因包围球过大而被缩得过小
+      const rawS = validBounds ? 1 / maxDim : 1;
       const s = Math.max(0.01, Math.min(1000, rawS));
 
-      if (validRadius) {
-        g.position.set(-sphere.center.x, -sphere.center.y, -sphere.center.z);
+      if (validBounds) {
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        g.position.set(-center.x, -center.y, -center.z);
         g.scale.setScalar(s);
       }
 
@@ -182,9 +186,10 @@ const ModelInner: FC<ModelInnerProps> = ({
       pivot.copy(pivotW.current);
       outer.current.rotation.set(initPitch, initYaw, 0);
 
-      if (autoFrame && validRadius && (camera as THREE.PerspectiveCamera).isPerspectiveCamera) {
+      if (autoFrame && validBounds && (camera as THREE.PerspectiveCamera).isPerspectiveCamera) {
         const persp = camera as THREE.PerspectiveCamera;
-        const fitR = sphere.radius * s;
+        // 归一化后最长边为 1，取一半作为取景半径
+        const fitR = 0.5;
         const d = (fitR * 1.2) / Math.sin((persp.fov * Math.PI) / 180 / 2);
         const safeD = Number.isFinite(d) && d > 0 ? Math.max(0.1, Math.min(1e5, d)) : null;
         if (safeD != null) {
@@ -194,7 +199,7 @@ const ModelInner: FC<ModelInnerProps> = ({
           persp.updateProjectionMatrix();
         }
       }
-      return validRadius;
+      return validBounds;
     };
 
     let cancelled = false;
