@@ -139,7 +139,7 @@ const ModelInner: FC<ModelInnerProps> = ({
   const content = useMemo<THREE.Object3D | null>(() => {
     if (ext === 'glb' || ext === 'gltf') return useGLTF(url).scene.clone();
     if (ext === 'fbx') return useFBX(url).clone();
-    if (ext === 'obj') return useLoader(OBJLoader, url).clone();
+    if (ext === 'obj') return (useLoader(OBJLoader, url) as THREE.Group).clone();
     console.error('Unsupported format:', ext);
     return null;
   }, [url, ext]);
