@@ -25,6 +25,13 @@
 - 自动取景、加载淡入、截图按钮、占位图 URL
 - 参数变更后组件重新加载以应用新配置
 
+## 部署（GitHub Pages）
+
+- 项目配置了 **base 路径** `/react-3d-model-viewer-demo/`，用于发布到 GitHub 仓库页。
+- 推送 `main` 分支会触发 `.github/workflows/deploy.yml`：安装依赖 → 构建 → 上传并部署到 GitHub Pages。
+- 部署完成后访问：**https://mitkimi.github.io/react-3d-model-viewer-demo**
+- 在仓库 **Settings → Pages** 中，将 Source 选为 **GitHub Actions**。
+
 ## 快速开始
 
 ```bash

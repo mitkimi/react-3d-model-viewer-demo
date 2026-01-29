@@ -40,12 +40,12 @@ function App() {
   const [environmentPreset, setEnvironmentPreset] = useState<ViewerProps['environmentPreset']>('studio')
   const [modelXOffset, setModelXOffset] = useState(0)
   const [modelYOffset, setModelYOffset] = useState(0)
-  const [defaultRotationX, setDefaultRotationX] = useState(-50)
+  const [defaultRotationX, setDefaultRotationX] = useState(-45)
   const [defaultRotationY, setDefaultRotationY] = useState(20)
-  const [defaultZoom, setDefaultZoom] = useState(0.5)
+  const [defaultZoom, setDefaultZoom] = useState(1)
   const [minZoomDistance, setMinZoomDistance] = useState(0.5)
-  const [maxZoomDistance, setMaxZoomDistance] = useState(10)
-  const [enableMouseParallax, setEnableMouseParallax] = useState(true)
+  const [maxZoomDistance, setMaxZoomDistance] = useState(20)
+  const [enableMouseParallax, setEnableMouseParallax] = useState(false)
   const [enableManualRotation, setEnableManualRotation] = useState(true)
   const [enableHoverRotation, setEnableHoverRotation] = useState(true)
   const [enableManualZoom, setEnableManualZoom] = useState(true)
@@ -91,7 +91,7 @@ function App() {
             showScreenshotButton,
             placeholderSrc: placeholderSrc || undefined,
           })}
-          url={modelUrl}
+          url={import.meta.env.BASE_URL + modelUrl.replace(/^\//, '')}
           width="100%"
           height="100%"
           modelXOffset={modelXOffset}
