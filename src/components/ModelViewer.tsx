@@ -59,7 +59,7 @@ const Loader: FC<{ placeholderSrc?: string }> = ({ placeholderSrc }) => {
       {placeholderSrc ? (
         <img src={placeholderSrc} width={128} height={128} style={{ filter: 'blur(8px)', borderRadius: 8 }} />
       ) : (
-        `${Math.round(progress)} %`
+        <span style={{ color: '#fff' }}>{Math.round(progress)} %</span>
       )}
     </Html>
   );
