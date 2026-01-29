@@ -148,48 +148,85 @@ const ModelInner: FC<ModelInnerProps> = ({
   useLayoutEffect(() => {
     if (!content) return;
     const g = inner.current;
-    g.updateWorldMatrix(true, true);
+    const MAX_RETRIES = 2; // 首帧 bounds 不完整时可重试次数
 
-    const sphere = new THREE.Box3().setFromObject(g).getBoundingSphere(new THREE.Sphere());
-    const s = 1 / (sphere.radius * 2);
-    g.position.set(-sphere.center.x, -sphere.center.y, -sphere.center.z);
-    g.scale.setScalar(s);
+    const applyLayout = (): boolean => {
+      g.updateWorldMatrix(true, true);
+      const box = new THREE.Box3().setFromObject(g);
+      const sphere = box.getBoundingSphere(new THREE.Sphere());
 
-    g.traverse((o: THREE.Object3D) => {
-      if (isMeshObject(o)) {
-        o.castShadow = true;
-        o.receiveShadow = true;
-        if (fadeIn) {
-          const materials = Array.isArray(o.material) ? o.material : [o.material];
-          materials.forEach(material => {
-            material.transparent = true;
-            material.opacity = 0;
-          });
+      const validRadius = Number.isFinite(sphere.radius) && sphere.radius > 1e-6;
+      const rawS = validRadius ? 1 / (sphere.radius * 2) : 1;
+      const s = Math.max(0.01, Math.min(1000, rawS));
+
+      if (validRadius) {
+        g.position.set(-sphere.center.x, -sphere.center.y, -sphere.center.z);
+        g.scale.setScalar(s);
+      }
+
+      g.traverse((o: THREE.Object3D) => {
+        if (isMeshObject(o)) {
+          o.castShadow = true;
+          o.receiveShadow = true;
+          if (fadeIn) {
+            const materials = Array.isArray(o.material) ? o.material : [o.material];
+            materials.forEach(material => {
+              material.transparent = true;
+              material.opacity = 0;
+            });
+          }
+        }
+      });
+
+      g.getWorldPosition(pivotW.current);
+      pivot.copy(pivotW.current);
+      outer.current.rotation.set(initPitch, initYaw, 0);
+
+      if (autoFrame && validRadius && (camera as THREE.PerspectiveCamera).isPerspectiveCamera) {
+        const persp = camera as THREE.PerspectiveCamera;
+        const fitR = sphere.radius * s;
+        const d = (fitR * 1.2) / Math.sin((persp.fov * Math.PI) / 180 / 2);
+        const safeD = Number.isFinite(d) && d > 0 ? Math.max(0.1, Math.min(1e5, d)) : null;
+        if (safeD != null) {
+          persp.position.set(pivotW.current.x, pivotW.current.y, pivotW.current.z + safeD);
+          persp.near = Math.max(0.001, safeD / 10);
+          persp.far = Math.min(1e6, safeD * 10);
+          persp.updateProjectionMatrix();
         }
       }
-    });
+      return validRadius;
+    };
 
-    g.getWorldPosition(pivotW.current);
-    pivot.copy(pivotW.current);
-    outer.current.rotation.set(initPitch, initYaw, 0);
+    let cancelled = false;
+    let rafId2: number | undefined;
 
-    if (autoFrame && (camera as THREE.PerspectiveCamera).isPerspectiveCamera) {
-      const persp = camera as THREE.PerspectiveCamera;
-      const fitR = sphere.radius * s;
-      const d = (fitR * 1.2) / Math.sin((persp.fov * Math.PI) / 180 / 2);
-      persp.position.set(pivotW.current.x, pivotW.current.y, pivotW.current.z + d);
-      persp.near = d / 10;
-      persp.far = d * 10;
-      persp.updateProjectionMatrix();
-    }
+    const runAfterFrames = (framesLeft: number, retriesLeft: number) => {
+      if (cancelled) return;
+      if (framesLeft > 0) {
+        rafId2 = requestAnimationFrame(() => runAfterFrames(framesLeft - 1, retriesLeft));
+        return;
+      }
+      const ok = applyLayout();
+      invalidate();
+      if (!ok && retriesLeft > 0 && autoFrame) {
+        rafId2 = requestAnimationFrame(() => runAfterFrames(1, retriesLeft - 1));
+        return;
+      }
+      if (!fadeIn) onLoaded?.();
+    };
 
-    /* optional fade-in */
+    // 延迟两帧再算包围盒；若仍无效且开了自动取景，再重试最多 MAX_RETRIES 次
+    const rafId1 = requestAnimationFrame(() => runAfterFrames(1, MAX_RETRIES));
+
+    let cleanupFade: (() => void) | undefined;
     if (fadeIn) {
+      const gFade = inner.current;
       let t = 0;
       const id = setInterval(() => {
+        if (cancelled) return;
         t += 0.05;
         const v = Math.min(t, 1);
-        g.traverse((o: THREE.Object3D) => {
+        gFade.traverse((o: THREE.Object3D) => {
           if (isMeshObject(o)) {
             const materials = Array.isArray(o.material) ? o.material : [o.material];
             materials.forEach(material => {
@@ -203,8 +240,15 @@ const ModelInner: FC<ModelInnerProps> = ({
           onLoaded?.();
         }
       }, 16);
-      return () => clearInterval(id);
-    } else onLoaded?.();
+      cleanupFade = () => clearInterval(id);
+    }
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(rafId1);
+      if (rafId2 != null) cancelAnimationFrame(rafId2);
+      cleanupFade?.();
+    };
   }, [content]);
 
   useEffect(() => {
