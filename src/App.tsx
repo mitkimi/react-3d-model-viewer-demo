@@ -16,11 +16,9 @@ import './App.scss'
 const MODELS = [
   { value: '/models/2014_mercedes-benz_sls_amg_black_series.glb', label: '奔驰 SLS AMG Black Series' },
   { value: '/models/sci-fi_shoe.glb', label: 'Sci-Fi 鞋（1）' },
+  { value: '/models/tron_moto_sdc__free.glb', label: 'Tron 摩托' },
   { value: '/models/sci-fi_sneaker.glb', label: 'Sci-Fi 运动鞋（2）' },
   { value: '/models/salomon_xt6_sneaker_photo_scan.glb', label: 'Salomon XT6 鞋' },
-  { value: '/models/tron_moto_sdc__free.glb', label: 'Tron 摩托' },
-  { value: '/models/freefire_new_sukuna_3d_model.glb', label: 'Free Fire 宿傩' },
-  { value: '/models/low_poly_restaurant_interior_scene.glb', label: '低模餐厅场景' },
 ] as const
 
 const ENV_PRESETS: { value: ViewerProps['environmentPreset']; label: string }[] = [
