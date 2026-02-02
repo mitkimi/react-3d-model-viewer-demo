@@ -1,6 +1,19 @@
 import { FC, Suspense, useRef, useLayoutEffect, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useLoader, useThree, invalidate } from '@react-three/fiber';
 import { OrbitControls, useGLTF, useFBX, useProgress, Html, Environment, ContactShadows } from '@react-three/drei';
+
+// jsDelivr CDN，避免 raw.githack.com 在国内超时
+const ENV_HDRI_PATH = 'https://cdn.jsdelivr.net/gh/pmndrs/drei-assets@456060a26bbeb8fdf79326f224b6d99b8bcce736/hdri/';
+const ENV_PRESET_FILES: Record<string, string> = {
+  apartment: 'lebombo_1k.hdr',
+  city: 'potsdamer_platz_1k.hdr',
+  dawn: 'kiara_1_dawn_1k.hdr',
+  forest: 'forest_slope_1k.hdr',
+  night: 'dikhololo_night_1k.hdr',
+  park: 'rooitou_park_1k.hdr',
+  studio: 'studio_small_03_1k.hdr',
+  sunset: 'venice_sunset_1k.hdr',
+};
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import * as THREE from 'three';
 
@@ -562,7 +575,13 @@ const ModelViewer: FC<ViewerProps> = ({
           touchAction: 'pan-y pinch-zoom'
         }}
       >
-        {environmentPreset !== 'none' && <Environment preset={environmentPreset as any} background={false} />}
+        {environmentPreset !== 'none' && ENV_PRESET_FILES[environmentPreset] && (
+          <Environment
+            files={ENV_PRESET_FILES[environmentPreset]}
+            path={ENV_HDRI_PATH}
+            background={false}
+          />
+        )}
 
         <ambientLight intensity={ambientIntensity} />
         <directionalLight position={[5, 5, 5]} intensity={keyLightIntensity} castShadow />
